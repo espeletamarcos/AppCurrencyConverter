@@ -84,26 +84,42 @@ public class MainActivity extends AppCompatActivity {
             return;
         }
 
-
-        //Llamamos al método de la interfaz que nos va a completar la URL
-        servicioAPI.getTiposDeCambio(llaveAPI, monedaOrigen).enqueue(new Callback<RespuestaAPI>() {
+        //Creamos el hilo por el cual vamos a gestionar la llamada a la API.
+        //Este hilo nos va a permitir que la interfaz no se detenga mientras se produce la llamada ya que vamos a separarlas en distintos hilos
+        new Thread(new Runnable() {
             @Override
-            public void onResponse(Call<RespuestaAPI> call, Response<RespuestaAPI> response) { //Método que define lo que vamos a hacer en caso de que la respuesta sea satisfactoria, o que simplemente, haya respuesta
-                if(response.isSuccessful() && response.body() != null) { //Aquí verificamos tanto que la respuesta sea satisfactoria como que no haya sido nula
-                    double tipoCambio = response.body().getConversion_rates().get(monedaDestino); //Del mapa que hemos obtenido como respuesta obtenemos el tipo de cambio a partir del String que usamos como llave que son las siglas de la moneda de destino
-                    double resultado = cantidad * tipoCambio; //Multiplicamos la cantidad por el tipo de cambio que hemos obtenido
-                    animarResultado(); //Animación de resultado
-                    tvResultado.setText(String.format("%.2f %s", resultado, monedaDestino));
-                } else {
-                    Toast.makeText(MainActivity.this, "Error al obtener el tipo de cambio", Toast.LENGTH_SHORT).show();
-                }
-            }
+            public void run() {
+                //Llamamos al método de la interfaz que nos va a completar la URL
+                servicioAPI.getTiposDeCambio(llaveAPI, monedaOrigen).enqueue(new Callback<RespuestaAPI>() {
+                    @Override
+                    public void onResponse(Call<RespuestaAPI> call, Response<RespuestaAPI> response) { //Método que define lo que vamos a hacer en caso de que la respuesta sea satisfactoria, o que simplemente, haya respuesta
+                        if(response.isSuccessful() && response.body() != null) { //Aquí verificamos tanto que la respuesta sea satisfactoria como que no haya sido nula
+                            double tipoCambio = response.body().getConversion_rates().get(monedaDestino); //Del mapa que hemos obtenido como respuesta obtenemos el tipo de cambio a partir del String que usamos como llave que son las siglas de la moneda de destino
+                            double resultado = cantidad * tipoCambio; //Multiplicamos la cantidad por el tipo de cambio que hemos obtenido
 
-            @Override
-            public void onFailure(Call<RespuestaAPI> call, Throwable t) { //Método que define lo que vamos a hacer en caso de que falle la respuesta o simplemente ni haya
-                Toast.makeText(MainActivity.this, "Error al obtener la respuesta de la API", Toast.LENGTH_SHORT).show();
+                            //Para actualizar la interfaz vamos a tener que implementar un hilo pero esta vez en el principal
+                            runOnUiThread(new Runnable() {
+                                @Override
+                                public void run() {
+                                    animarResultado(); //Animación de resultado
+                                    tvResultado.setText(String.format("%.2f %s", resultado, monedaDestino));
+                                }
+                            });
+                        } else {
+                            Toast.makeText(MainActivity.this, "Error al obtener el tipo de cambio", Toast.LENGTH_SHORT).show();
+                        }
+                    }
+
+                    @Override
+                    public void onFailure(Call<RespuestaAPI> call, Throwable t) { //Método que define lo que vamos a hacer en caso de que falle la respuesta o simplemente ni haya
+                        Toast.makeText(MainActivity.this, "Error al obtener la respuesta de la API", Toast.LENGTH_SHORT).show();
+                    }
+                });
             }
-        });
+        }).start();
+
+
+
     }
 
     //Método para la animación del resultado
