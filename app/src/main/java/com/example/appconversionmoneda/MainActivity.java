@@ -90,6 +90,8 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void run() {
                 //Llamamos al método de la interfaz que nos va a completar la URL
+                //En el .enqueue ya arranca el hilo interno de Retrofit que gestiona la respuesta
+                //Si fuese en vez de enqueue, execute se bloquearía la interfaz
                 servicioAPI.getTiposDeCambio(llaveAPI, monedaOrigen).enqueue(new Callback<RespuestaAPI>() {
                     @Override
                     public void onResponse(Call<RespuestaAPI> call, Response<RespuestaAPI> response) { //Método que define lo que vamos a hacer en caso de que la respuesta sea satisfactoria, o que simplemente, haya respuesta
